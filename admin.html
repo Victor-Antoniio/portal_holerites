@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel do DP — Portal de Holerites</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<!-- Login do admin -->
+<section class="login" id="loginView" data-view hidden>
+  <form id="loginForm" novalidate>
+    <h1>Painel do DP</h1>
+    <p>Acesso restrito à equipe de departamento pessoal.</p>
+    <label>E-mail<input id="lEmail" type="email" autocomplete="username" required></label>
+    <label>Senha<input id="lSenha" type="password" autocomplete="current-password" required></label>
+    <div class="err" id="lErr" hidden></div>
+    <button class="primary" type="submit" id="lBtn">Entrar</button>
+    <button class="ghost" type="button" id="lReset">Esqueci minha senha</button>
+  </form>
+</section>
+
+<section class="login" id="setupView" data-view hidden>
+  <form>
+    <h1>Falta configurar</h1>
+    <p>Abra o arquivo <b>firebase-config.js</b> e cole os dados do seu projeto Firebase. O passo a passo está no README.md.</p>
+  </form>
+</section>
+
+<!-- Painel -->
+<div class="wrap" id="appView" data-view hidden>
+  <header class="top">
+    <div>
+      <h1>Portal de holerites — DP</h1>
+      <p>Cadastro de colaboradores e envio de holerites por competência.</p>
+    </div>
+    <div class="userbox"><span id="userEmail"></span><button class="ghost" type="button" id="btnSair">Sair</button></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="colaboradores" aria-selected="true">Colaboradores</button>
+    <button type="button" role="tab" data-tab="holerites" aria-selected="false">Holerites</button>
+  </nav>
+
+  <!-- Aba: colaboradores -->
+  <section id="tab-colaboradores" class="panel">
+    <div class="card">
+      <h2>Importar colaboradores (Excel/CSV)</h2>
+      <p class="hint">Colunas aceitas: <span class="mono">nome</span>, <span class="mono">cpf</span> e, opcionalmente, <span class="mono">matricula</span> e <span class="mono">email</span>. Aceita .csv, .xlsx e .xls. Cada colaborador recebe uma <b>senha provisória</b> gerada pelo sistema.</p>
+      <div class="actions">
+        <label class="filebtn"><span id="planilhaNome">Escolher planilha…</span><input id="planilha" type="file" accept=".csv,.xlsx,.xls" hidden></label>
+        <button id="btnImportar" class="primary" type="button" disabled>Importar planilha</button>
+        <button id="btnNovo" type="button">+ Novo colaborador</button>
+      </div>
+      <div id="importResumo" class="resumo" hidden></div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead">
+        <h2>Cadastrados</h2>
+        <input id="buscaColab" type="search" placeholder="Buscar por nome, CPF ou matrícula" class="busca">
+      </div>
+      <div class="count" id="countColab"></div>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>Nome</th><th>CPF</th><th>Matrícula</th><th>Situação</th><th>Senha</th><th></th></tr></thead>
+          <tbody id="tbodyColab"></tbody>
+        </table>
+        <div id="emptyColab" class="empty" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Aba: holerites -->
+  <section id="tab-holerites" class="panel" hidden>
+    <div class="card">
+      <h2>Enviar holerites</h2>
+      <p class="hint">Selecione os PDFs exportados pelo Power Automate. O colaborador e a competência são identificados pelo nome do arquivo (<span class="mono">NOME - HOLERITE PGTO MMAAAA.pdf</span>). Casos de nome duplicado ou não reconhecido ficam destacados para conferência antes do envio.</p>
+      <div class="actions">
+        <label class="filebtn"><span id="pdfsNome">Selecionar PDFs…</span><input id="pdfs" type="file" accept=".pdf,application/pdf" multiple hidden></label>
+      </div>
+      <div id="uploadArea" hidden>
+        <p class="count" id="uploadResumo"></p>
+        <div class="tablebox scroll">
+          <table>
+            <thead><tr><th>Arquivo</th><th>Competência</th><th>Colaborador</th></tr></thead>
+            <tbody id="tbodyUpload"></tbody>
+          </table>
+        </div>
+        <div class="actions" style="margin-top:10px">
+          <button id="btnEnviar" class="primary" type="button">Enviar</button>
+          <span id="progresso" class="count"></span>
+        </div>
+      </div>
+      <div id="uploadResultado" class="resumo" hidden></div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead">
+        <h2>Holerites enviados</h2>
+        <input id="buscaHol" type="search" placeholder="Buscar por nome do colaborador" class="busca">
+      </div>
+      <div class="count" id="countHol"></div>
+      <div class="tablebox scroll">
+        <table>
+          <thead><tr><th>Colaborador</th><th>Competência</th><th>Arquivo original</th><th></th></tr></thead>
+          <tbody id="tbodyHol"></tbody>
+        </table>
+        <div id="emptyHol" class="empty" hidden></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="overlay" class="modal-bg" hidden></div>
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script type="module" src="admin.js"></script>
+</body>
+</html>

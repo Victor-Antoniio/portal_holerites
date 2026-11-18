@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Regras dos arquivos PDF. Cada holerite fica em: holerites/<uid do colaborador>/<AAAA-MM>.pdf
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function admin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.token.email));
+    }
+
+    function colaboradorLiberado(uid) {
+      let c = firestore.get(/databases/(default)/documents/colaboradores/$(uid)).data;
+      return c.ativo == true && c.senhaProvisoria == false;
+    }
+
+    match /holerites/{uid}/{arquivo} {
+      allow read: if admin()
+        || (request.auth != null && request.auth.uid == uid && colaboradorLiberado(uid));
+      // só o DP envia, só PDF e no máximo 5 MB por arquivo
+      allow create, update: if admin()
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 5 * 1024 * 1024;
+      allow delete: if admin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

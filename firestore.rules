@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Regras de segurança do Portal de Holerites.
+//
+// - Admin (equipe do DP): quem tem login E um documento em "admins" (ID = e-mail em minúsculas).
+// - Colaborador: só enxerga o próprio cadastro e os próprios holerites, e só se estiver ATIVO
+//   e já tiver trocado a senha provisória.
+// - Criar colaboradores, inativar e redefinir senha são feitos pelas Cloud Functions
+//   (que usam privilégio de administrador e conferem se quem chamou é admin).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function admin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    function colaboradorLiberado(uid) {
+      let c = get(/databases/$(database)/documents/colaboradores/$(uid)).data;
+      return c.ativo == true && c.senhaProvisoria == false;
+    }
+
+    match /colaboradores/{uid} {
+      // o próprio colaborador lê o próprio cadastro (para saber se precisa trocar a senha)
+      allow read: if admin() || (request.auth != null && request.auth.uid == uid);
+      // única alteração permitida ao colaborador: marcar que já trocou a senha provisória
+      allow update: if request.auth != null && request.auth.uid == uid
+        && resource.data.ativo == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['senhaProvisoria'])
+        && request.resource.data.senhaProvisoria == false;
+      allow create, delete: if false;
+    }
+
+    match /holerites/{id} {
+      allow read: if admin()
+        || (request.auth != null
+            && resource.data.colaboradorId == request.auth.uid
+            && colaboradorLiberado(request.auth.uid));
+      allow write: if admin();
+    }
+
+    // A lista de admins só é alterada pelo administrador do projeto, no Console do Firebase.
+    match /admins/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false;
+    }
+  }
+}

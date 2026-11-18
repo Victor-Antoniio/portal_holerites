@@ -1,0 +1,11 @@
+# Nunca envie dados de colaboradores, senhas ou chaves para o GitHub
+*.xlsx
+*.xls
+*.csv
+*.pdf
+senhas-provisorias*
+node_modules/
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+.firebase/
+firebase-debug.log
