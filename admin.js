@@ -5,7 +5,7 @@ import { ref, uploadBytes, deleteObject } from "https://www.gstatic.com/firebase
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 import {
   configurado, auth, db, storage, fns, $, esc, soDigitos, cpfFmt, normalizarNome,
-  interpretarNomeArquivo, competenciaCurta, mostrarView, toast
+  interpretarNomeArquivo, competenciaCurta, rotuloTipo, mostrarView, toast
 } from "./shared.js";
 
 const S = {
@@ -317,7 +317,7 @@ $("pdfs").addEventListener("change", e => {
   S.linhas = arquivos.map((file, i) => {
     const r = interpretarNomeArquivo(file.name);
     const candidatos = r ? (S.porNome.get(r.nomeNormalizado) || []) : [];
-    return { i, file, comp: r ? r.competencia : null, candidatos, uid: candidatos.length === 1 ? candidatos[0].uid : "" };
+    return { i, file, comp: r ? r.competencia : null, tipo: r ? r.tipo : null, candidatos, uid: candidatos.length === 1 ? candidatos[0].uid : "" };
   });
   renderUpload();
 });
@@ -329,7 +329,15 @@ function renderUpload() {
   if (!S.linhas.length) return;
   const ativos = S.cols.filter(c => c.ativo !== false);
   const pend = S.linhas.length - prontas().length;
-  $("uploadResumo").textContent = `${prontas().length} arquivo(s) identificado(s)` + (pend ? ` — ${pend} precisam de conferência (em amarelo).` : ".");
+  const vistos = new Set();
+  let repetidos = 0;
+  for (const l of prontas()) {
+    const k = `${l.uid}|${l.comp}|${l.tipo}`;
+    if (vistos.has(k)) repetidos++; else vistos.add(k);
+  }
+  $("uploadResumo").textContent = `${prontas().length} arquivo(s) identificado(s)`
+    + (pend ? ` — ${pend} precisam de conferência (em amarelo).` : ".")
+    + (repetidos ? ` Atenção: ${repetidos} arquivo(s) repetido(s) (mesmo colaborador, competência e tipo); só o último enviado será mantido.` : "");
   $("btnEnviar").textContent = `Enviar ${prontas().length} holerite(s)`;
   $("btnEnviar").disabled = !prontas().length;
   $("tbodyUpload").innerHTML = S.linhas.map(l => {
@@ -343,6 +351,7 @@ function renderUpload() {
     return `<tr class="${pendente ? "pend" : ""}">
       <td class="trunc" title="${esc(l.file.name)}">${esc(l.file.name)}</td>
       <td class="num">${l.comp ? esc(competenciaCurta(l.comp)) : '<span class="bad">não reconhecida</span>'}</td>
+      <td>${l.comp ? esc(rotuloTipo(l.tipo)) : "—"}</td>
       <td>${celula}</td></tr>`;
   }).join("");
 }
@@ -362,13 +371,13 @@ $("btnEnviar").onclick = async () => {
   let ok = 0, feitos = 0;
 
   async function enviarUm(l) {
-    const path = `holerites/${l.uid}/${l.comp}.pdf`;
+    const path = `holerites/${l.uid}/${l.comp}_${l.tipo}.pdf`;
     await uploadBytes(ref(storage, path), l.file, {
       contentType: "application/pdf",
-      contentDisposition: `attachment; filename="holerite-${l.comp}.pdf"`
+      contentDisposition: `attachment; filename="holerite-${l.comp}-${l.tipo}.pdf"`
     });
-    await setDoc(doc(db, "holerites", `${l.uid}_${l.comp}`), {
-      colaboradorId: l.uid, competencia: l.comp, storagePath: path,
+    await setDoc(doc(db, "holerites", `${l.uid}_${l.comp}_${l.tipo}`), {
+      colaboradorId: l.uid, competencia: l.comp, tipo: l.tipo, storagePath: path,
       nomeArquivoOriginal: l.file.name, enviadoEm: serverTimestamp(), enviadoPor: S.email
     });
   }
@@ -420,9 +429,9 @@ async function carregarEnviados() {
     em.hidden = true;
     $("tbodyHol").innerHTML = itens.map(h => `<tr>
       <td class="name">${esc((S.porUid.get(h.colaboradorId) || {}).nome || "(colaborador removido)")}</td>
-      <td class="num">${esc(competenciaCurta(h.competencia))}</td>
+      <td class="num">${esc(competenciaCurta(h.competencia))} · ${esc(rotuloTipo(h.tipo))}</td>
       <td class="trunc muted" title="${esc(h.nomeArquivoOriginal || "")}">${esc(h.nomeArquivoOriginal || "—")}</td>
-      <td class="rowactions"><button type="button" class="danger" data-del="${esc(h.id)}" data-path="${esc(h.storagePath)}" data-nome="${esc((S.porUid.get(h.colaboradorId) || {}).nome || "")}" data-comp="${esc(h.competencia)}">Apagar</button></td>
+      <td class="rowactions"><button type="button" class="danger" data-del="${esc(h.id)}" data-path="${esc(h.storagePath)}" data-nome="${esc((S.porUid.get(h.colaboradorId) || {}).nome || "")}" data-comp="${esc(h.competencia)}" data-tipo="${esc(rotuloTipo(h.tipo))}">Apagar</button></td>
     </tr>`).join("");
   } catch (e) {
     $("countHol").textContent = "";
@@ -433,7 +442,7 @@ async function carregarEnviados() {
 $("tbodyHol").addEventListener("click", async e => {
   const b = e.target.closest("button[data-del]");
   if (!b) return;
-  if (!confirm(`Apagar o holerite de ${competenciaCurta(b.dataset.comp)} de ${b.dataset.nome || "este colaborador"}? Essa ação não pode ser desfeita.`)) return;
+  if (!confirm(`Apagar o holerite (${b.dataset.tipo}) de ${competenciaCurta(b.dataset.comp)} de ${b.dataset.nome || "este colaborador"}? Essa ação não pode ser desfeita.`)) return;
   b.disabled = true;
   try {
     try { await deleteObject(ref(storage, b.dataset.path)); }

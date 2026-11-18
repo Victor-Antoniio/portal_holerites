@@ -172,3 +172,8 @@ tr.pend select{border-color:var(--warn)}
 .modal .grid{display:grid;gap:10px}
 .senha{font-size:26px;font-weight:600;letter-spacing:.08em;background:var(--surface-2);border-radius:var(--r);padding:12px;text-align:center;user-select:all}
 .login .hint{margin-top:2px}
+
+/* holerites agrupados por mês (um card por competência, uma linha por tipo) */
+.holerites .item.grupo{display:grid;gap:8px;align-items:stretch}
+.holerites .item.grupo strong{font-family:var(--f-display);font-size:16px}
+.holerites .linha{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid var(--line)}

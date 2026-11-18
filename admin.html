@@ -81,7 +81,7 @@
   <section id="tab-holerites" class="panel" hidden>
     <div class="card">
       <h2>Enviar holerites</h2>
-      <p class="hint">Selecione os PDFs exportados pelo Power Automate. O colaborador e a competência são identificados pelo nome do arquivo (<span class="mono">NOME - HOLERITE PGTO MMAAAA.pdf</span>). Casos de nome duplicado ou não reconhecido ficam destacados para conferência antes do envio.</p>
+      <p class="hint">Selecione os PDFs exportados pelo Power Automate. O colaborador, a competência e o tipo (pagamento, quinzena, 13º…) são identificados pelo nome do arquivo (<span class="mono">NOME - HOLERITE QUINZENA MMAAAA.pdf</span>). Casos de nome duplicado ou não reconhecido ficam destacados para conferência antes do envio.</p>
       <div class="actions">
         <label class="filebtn"><span id="pdfsNome">Selecionar PDFs…</span><input id="pdfs" type="file" accept=".pdf,application/pdf" multiple hidden></label>
       </div>
@@ -89,7 +89,7 @@
         <p class="count" id="uploadResumo"></p>
         <div class="tablebox scroll">
           <table>
-            <thead><tr><th>Arquivo</th><th>Competência</th><th>Colaborador</th></tr></thead>
+            <thead><tr><th>Arquivo</th><th>Competência</th><th>Tipo</th><th>Colaborador</th></tr></thead>
             <tbody id="tbodyUpload"></tbody>
           </table>
         </div>

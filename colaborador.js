@@ -2,7 +2,7 @@
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { configurado, auth, db, storage, $, esc, soDigitos, emailDoCpf, competenciaExtenso, mostrarView, toast } from "./shared.js";
+import { configurado, auth, db, storage, $, esc, soDigitos, emailDoCpf, competenciaExtenso, rotuloTipo, ordemTipo, mostrarView, toast } from "./shared.js";
 
 let avisoLogin = ""; // mensagem para mostrar na tela de login depois de um signOut forçado
 
@@ -123,10 +123,20 @@ async function listar(uid) {
     const snap = await getDocs(query(collection(db, "holerites"), where("colaboradorId", "==", uid)));
     const itens = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.competencia < b.competencia ? 1 : -1));
     if (!itens.length) { lista.innerHTML = ""; $("empty").hidden = false; return; }
-    lista.innerHTML = itens.map(h => `
-      <div class="item">
-        <span>${esc(competenciaExtenso(h.competencia))}</span>
-        <button type="button" class="primary" data-path="${esc(h.storagePath)}">Baixar</button>
+    // agrupa por mês: cada competência mostra seus holerites (quinzena, pagamento, 13º...)
+    const grupos = new Map();
+    for (const h of itens) {
+      if (!grupos.has(h.competencia)) grupos.set(h.competencia, []);
+      grupos.get(h.competencia).push(h);
+    }
+    lista.innerHTML = [...grupos].map(([comp, hs]) => `
+      <div class="item grupo">
+        <strong>${esc(competenciaExtenso(comp))}</strong>
+        ${hs.sort((a, b) => ordemTipo(a.tipo) - ordemTipo(b.tipo)).map(h => `
+        <div class="linha">
+          <span>${esc(rotuloTipo(h.tipo))}</span>
+          <button type="button" class="primary" data-path="${esc(h.storagePath)}">Baixar</button>
+        </div>`).join("")}
       </div>`).join("");
   } catch {
     lista.innerHTML = '<p class="count">Não foi possível carregar os holerites. Atualize a página.</p>';

@@ -84,8 +84,23 @@ Links finais:
 
 1. Entre no painel do DP e, na aba **Colaboradores**, importe a planilha (colunas `nome`, `cpf`, e opcionais `matricula` e `email`). Veja `modelo-colaboradores.csv`.
 2. Ao final, clique em **Baixar lista de senhas provisórias (CSV)** e **guarde esse arquivo com cuidado**. As senhas não ficam salvas em lugar nenhum e não dá para consultá-las depois. Se perder, use **Redefinir senha** na pessoa.
-3. Na aba **Holerites**, selecione os PDFs. O sistema lê o nome do arquivo (`NOME - HOLERITE PGTO MMAAAA.pdf`), identifica colaborador e competência e destaca em amarelo o que precisa de conferência (nome duplicado ou não encontrado).
+3. Na aba **Holerites**, selecione os PDFs. O sistema lê o nome do arquivo, identifica colaborador, competência e **tipo** e destaca em amarelo o que precisa de conferência (nome duplicado ou não encontrado). Veja "Nome dos arquivos" abaixo.
 4. O colaborador entra com **CPF + senha provisória**, é obrigado a criar uma senha própria e passa a ver os holerites.
+
+## Nome dos arquivos
+
+O padrão é: **NOME DO COLABORADOR - texto qualquer MMAAAA.pdf**
+
+```
+VICTOR ANTONIO SILVA SOUZA - HOLERITE PGTO 112026.pdf
+VICTOR ANTONIO SILVA SOUZA - HOLERITE QUINZENA 112026.pdf
+VICTOR ANTONIO SILVA SOUZA - HOLERITE 13 SALARIO 112026.pdf
+```
+
+- O hífen precisa ter **espaço antes e depois** (` - `); sem ele o arquivo não é reconhecido.
+- Os 6 números no fim são mês e ano (`112026` = novembro de 2026).
+- O **tipo** vem do texto entre o hífen e os números. Palavras reconhecidas: `PGTO`/`PAGAMENTO`/`MENSAL`/`FOLHA` (Pagamento), `QUINZENA` (Quinzena), `13` (13º salário) e `FERIAS` (Férias). Qualquer outra palavra (ex.: `ADIANTAMENTO`) vira um tipo próprio.
+- Cada combinação colaborador + competência + tipo guarda **um** arquivo: reenviar o mesmo tipo do mesmo mês substitui o anterior, mas tipos diferentes do mesmo mês convivem (o colaborador vê todos, agrupados por mês).
 
 ## Dia a dia
 
@@ -95,7 +110,7 @@ Links finais:
 | Colaborador desligado | **Inativar** na linha dele: perde o acesso na hora, histórico fica guardado |
 | Esqueceu a senha | **Redefinir senha** na linha dele: gera nova senha provisória |
 | Enviou holerite errado | Aba Holerites > lista de enviados > **Apagar** |
-| Reenviar uma competência | É só enviar de novo: o arquivo antigo é substituído |
+| Reenviar um holerite | É só enviar de novo (mesmo nome de colaborador, mês e tipo): o arquivo antigo é substituído |
 
 ## Pontos de atenção
 

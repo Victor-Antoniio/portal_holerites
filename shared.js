@@ -52,10 +52,46 @@ export function normalizarNome(nome) {
     .trim();
 }
 
+const TIPOS = { pagamento: "Pagamento", quinzena: "Quinzena", decimo: "13º salário", ferias: "Férias" };
+const ORDEM_TIPOS = ["quinzena", "pagamento", "decimo", "ferias"]; // ordem em que aparecem para o colaborador
+
+/** "decimo" -> "13º salário"; tipos fora da lista viram o próprio texto ("adiantamento" -> "Adiantamento"). */
+export function rotuloTipo(tipo) {
+  if (TIPOS[tipo]) return TIPOS[tipo];
+  if (!tipo || tipo === "geral") return "Holerite";
+  const t = String(tipo).replace(/-/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+export function ordemTipo(tipo) {
+  const i = ORDEM_TIPOS.indexOf(tipo);
+  return i === -1 ? ORDEM_TIPOS.length : i;
+}
+
+/**
+ * Descobre o tipo do holerite pelo texto que vem depois do hífen no nome do arquivo
+ * (ex.: "HOLERITE QUINZENA", "HOLERITE PGTO", "HOLERITE 13 SALARIO").
+ * Palavras reconhecidas: PGTO/PAGAMENTO/MENSAL/FOLHA, QUINZENA, 13 (13º), FERIAS.
+ * Qualquer outra palavra vira um tipo próprio (ex.: ADIANTAMENTO -> "adiantamento").
+ */
+export function classificarTipo(texto) {
+  const palavras = normalizarNome(texto)
+    .split(/[^A-Z0-9º]+/)
+    .filter(p => p && p !== "HOLERITE" && p !== "DE" && p !== "DO" && p !== "DA");
+
+  if (palavras.some(p => /^13/.test(p) || p === "DECIMO")) return "decimo";
+  if (palavras.some(p => ["PGTO", "PAGTO", "PAGAMENTO", "MENSAL", "FOLHA"].includes(p))) return "pagamento";
+  if (palavras.some(p => p === "QUINZENA" || p === "QUINZENAL")) return "quinzena";
+  if (palavras.some(p => p.startsWith("FERIAS"))) return "ferias";
+
+  const slug = palavras.join("-").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40);
+  return slug || "geral";
+}
+
 /**
  * Lê o nome de um arquivo no padrão do Power Automate:
  *   "NOME DO COLABORADOR - QUALQUER COISA MMAAAA.pdf"
- * Tudo antes do primeiro " - " é o nome; depois dele, procura 6 dígitos seguidos (MMAAAA).
+ * Tudo antes do primeiro " - " é o nome; depois dele, procura 6 dígitos seguidos (MMAAAA)
+ * e usa o restante do texto para descobrir o tipo (quinzena, pagamento, 13º...).
  * Devolve null se o arquivo não seguir o padrão.
  */
 export function interpretarNomeArquivo(nomeArquivo) {
@@ -71,9 +107,11 @@ export function interpretarNomeArquivo(nomeArquivo) {
   const ano = Number(m[2]);
   if (mes < 1 || mes > 12 || ano < 2000 || ano > 2100) return null;
 
+  const textoTipo = resto.slice(0, m.index) + " " + resto.slice(m.index + m[0].length);
   return {
     nomeNormalizado: normalizarNome(partes[0]),
-    competencia: `${ano}-${String(mes).padStart(2, "0")}`
+    competencia: `${ano}-${String(mes).padStart(2, "0")}`,
+    tipo: classificarTipo(textoTipo)
   };
 }
 
