@@ -51,9 +51,16 @@ if (!configurado) {
   onAuthStateChanged(auth, async user => {
     if (!user) { mostrarView("loginView"); erroLogin(avisoLogin); avisoLogin = ""; return; }
     let ok = false;
-    try { ok = (await getDoc(doc(db, "admins", String(user.email || "").toLowerCase()))).exists(); } catch { ok = false; }
+    let motivo = "";
+    const emailAdmin = String(user.email || "").toLowerCase();
+    try {
+      ok = (await getDoc(doc(db, "admins", emailAdmin))).exists();
+      if (!ok) motivo = `O e-mail ${emailAdmin} não foi encontrado na coleção "admins". Confira se o ID do documento é exatamente esse e-mail, em minúsculas e sem espaços.`;
+    } catch (e) {
+      motivo = `Não foi possível verificar o acesso (${(e && e.code) || (e && e.message) || "erro desconhecido"}). Se aparecer "permission-denied", as regras do Firestore provavelmente ainda não foram publicadas.`;
+    }
     if (!ok) {
-      avisoLogin = "Esse login não tem acesso ao painel do DP.";
+      avisoLogin = motivo;
       await signOut(auth);
       return;
     }
